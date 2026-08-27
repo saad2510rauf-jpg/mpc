@@ -1,0 +1,16 @@
+<?php
+/**
+ * My Peptide Core theme bootstrap.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'MPC_THEME_VERSION', '1.0.0' );
+define( 'MPC_THEME_DIR', get_template_directory() );
+define( 'MPC_THEME_URI', get_template_directory_uri() );
+
+require_once MPC_THEME_DIR . '/inc/setup.php';
+require_once MPC_THEME_DIR . '/inc/woocommerce.php';
+require_once MPC_THEME_DIR . '/inc/compliance-pages.php';
