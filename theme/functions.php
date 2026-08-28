@@ -13,4 +13,6 @@ define( 'MPC_THEME_URI', get_template_directory_uri() );
 
 require_once MPC_THEME_DIR . '/inc/setup.php';
 require_once MPC_THEME_DIR . '/inc/woocommerce.php';
+require_once MPC_THEME_DIR . '/inc/product-fields.php';
+require_once MPC_THEME_DIR . '/inc/product-addons.php';
 require_once MPC_THEME_DIR . '/inc/compliance-pages.php';

@@ -67,7 +67,10 @@ function mpc_enqueue_assets() {
 		array(),
 		null
 	);
-	wp_enqueue_style( 'my-peptide-core-style', get_stylesheet_uri(), array(), mpc_asset_version( '/style.css' ) );
+	// Depend on WooCommerce's stylesheet where present, so the theme's rules
+	// are enqueued after it and win without needing !important everywhere.
+	$style_deps = wp_style_is( 'woocommerce-general', 'registered' ) ? array( 'woocommerce-general' ) : array();
+	wp_enqueue_style( 'my-peptide-core-style', get_stylesheet_uri(), $style_deps, mpc_asset_version( '/style.css' ) );
 	wp_enqueue_script(
 		'my-peptide-core-navigation',
 		MPC_THEME_URI . '/assets/js/navigation.js',
