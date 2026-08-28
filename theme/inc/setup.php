@@ -68,9 +68,9 @@ function mpc_enqueue_assets() {
 			true
 		);
 		wp_localize_script( 'my-peptide-core-landing', 'mpcLanding', array(
-			'saleEnd'       => mpc_get_sale_end_iso(),
-			'rollingHours'  => mpc_get_rolling_sale_hours(),
-			'baseCurrency'  => class_exists( 'WooCommerce' ) ? get_woocommerce_currency() : 'EUR',
+			'saleEnd'      => mpc_get_countdown_iso(),
+			'repeatDays'   => 'weekly' === mpc_get_countdown_mode() ? 7 : 0,
+			'baseCurrency' => class_exists( 'WooCommerce' ) ? get_woocommerce_currency() : 'EUR',
 		) );
 	}
 }
@@ -85,11 +85,11 @@ function mpc_get_theme_mod_or_option( $key, $default = '' ) {
 }
 
 /**
- * Hours the rolling countdown runs for when no fixed end date is set.
- * Set to 0 (or filter to 0) to hide the countdown unless a real date exists.
+ * Countdown mode: 'weekly' (default), 'fixed', or 'off'.
  */
-function mpc_get_rolling_sale_hours() {
-	return (int) apply_filters( 'mpc_rolling_sale_hours', (int) mpc_get_theme_mod_or_option( 'mpc_sale_rolling_hours', 48 ) );
+function mpc_get_countdown_mode() {
+	$mode = mpc_get_theme_mod_or_option( 'mpc_countdown_mode', 'weekly' );
+	return in_array( $mode, array( 'weekly', 'fixed', 'off' ), true ) ? $mode : 'weekly';
 }
 
 /**
@@ -100,32 +100,77 @@ function mpc_get_sale_end_timestamp() {
 	if ( ! $raw ) {
 		return false;
 	}
-	$ts = strtotime( $raw . ' ' . wp_timezone_string() );
-	return ( $ts && $ts > time() ) ? $ts : false;
+	try {
+		$dt = new DateTimeImmutable( $raw, wp_timezone() );
+	} catch ( Exception $e ) {
+		return false;
+	}
+	$ts = $dt->getTimestamp();
+	return $ts > time() ? $ts : false;
 }
 
 /**
- * Fixed sale end as an ISO 8601 string for the front-end, or '' when unset.
+ * Timestamp of the next recurring weekly deadline, in the site's timezone.
+ *
+ * Computed server-side so every visitor counts down to the same moment.
+ * The day shift is applied before the time is set, so the deadline lands on
+ * the intended wall-clock time even across a daylight-saving boundary.
  */
-function mpc_get_sale_end_iso() {
-	$ts = mpc_get_sale_end_timestamp();
+function mpc_get_weekly_deadline_timestamp() {
+	$day  = (int) mpc_get_theme_mod_or_option( 'mpc_sale_weekly_day', 0 );
+	$time = mpc_get_theme_mod_or_option( 'mpc_sale_weekly_time', '23:59' );
+
+	$day = max( 0, min( 6, $day ) );
+	if ( ! preg_match( '/^([01]?\d|2[0-3]):([0-5]\d)$/', $time, $m ) ) {
+		$m = array( '', '23', '59' );
+	}
+	$hour   = (int) $m[1];
+	$minute = (int) $m[2];
+
+	$tz  = wp_timezone();
+	$now = new DateTimeImmutable( 'now', $tz );
+
+	$delta     = ( $day - (int) $now->format( 'w' ) + 7 ) % 7;
+	$candidate = $now->modify( '+' . $delta . ' days' )->setTime( $hour, $minute, 0 );
+
+	if ( $candidate->getTimestamp() <= $now->getTimestamp() ) {
+		$candidate = $now->modify( '+' . ( $delta + 7 ) . ' days' )->setTime( $hour, $minute, 0 );
+	}
+
+	return $candidate->getTimestamp();
+}
+
+/**
+ * The deadline the hero should count down to, or false when there is none.
+ */
+function mpc_get_countdown_timestamp() {
+	switch ( mpc_get_countdown_mode() ) {
+		case 'off':
+			return false;
+		case 'fixed':
+			return mpc_get_sale_end_timestamp();
+		default:
+			return mpc_get_weekly_deadline_timestamp();
+	}
+}
+
+/**
+ * The countdown deadline as an ISO 8601 string, or '' when there is none.
+ */
+function mpc_get_countdown_iso() {
+	$ts = mpc_get_countdown_timestamp();
 	return $ts ? gmdate( 'c', $ts ) : '';
 }
 
 /**
  * Whether the hero countdown should render at all.
- *
- * A fixed Customizer end date always wins. Otherwise the rolling window
- * runs, unless it has been set to zero hours.
  */
 function mpc_countdown_is_active() {
-	return (bool) mpc_get_sale_end_timestamp() || mpc_get_rolling_sale_hours() > 0;
+	return (bool) mpc_get_countdown_timestamp();
 }
 
 /**
- * Customizer: homepage hero / sale settings. Countdown + flash badge only
- * ever show when an admin has actually set a real, future end date —
- * no fake "always 48h left" urgency.
+ * Customizer: homepage hero / sale settings.
  */
 function mpc_customize_register( $wp_customize ) {
 	$wp_customize->add_section( 'mpc_hero', array(
@@ -153,28 +198,70 @@ function mpc_customize_register( $wp_customize ) {
 		'type'    => 'text',
 	) );
 
+	$wp_customize->add_setting( 'mpc_countdown_mode', array(
+		'default'           => 'weekly',
+		'sanitize_callback' => 'mpc_sanitize_countdown_mode',
+	) );
+	$wp_customize->add_control( 'mpc_countdown_mode', array(
+		'label'       => __( 'Hero countdown', 'my-peptide-core' ),
+		'description' => __( 'How the flash-sale countdown behaves. All visitors always see the same deadline, calculated in your site timezone.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'select',
+		'choices'     => array(
+			'weekly' => __( 'Recurring weekly deadline', 'my-peptide-core' ),
+			'fixed'  => __( 'One fixed end date', 'my-peptide-core' ),
+			'off'    => __( 'No countdown', 'my-peptide-core' ),
+		),
+	) );
+
+	$wp_customize->add_setting( 'mpc_sale_weekly_day', array(
+		'default'           => 0,
+		'sanitize_callback' => 'absint',
+	) );
+	$wp_customize->add_control( 'mpc_sale_weekly_day', array(
+		'label'       => __( 'Weekly deadline — day', 'my-peptide-core' ),
+		'description' => __( 'Used when the countdown is set to “Recurring weekly deadline”.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'select',
+		'choices'     => array(
+			0 => __( 'Sunday', 'my-peptide-core' ),
+			1 => __( 'Monday', 'my-peptide-core' ),
+			2 => __( 'Tuesday', 'my-peptide-core' ),
+			3 => __( 'Wednesday', 'my-peptide-core' ),
+			4 => __( 'Thursday', 'my-peptide-core' ),
+			5 => __( 'Friday', 'my-peptide-core' ),
+			6 => __( 'Saturday', 'my-peptide-core' ),
+		),
+	) );
+
+	$wp_customize->add_setting( 'mpc_sale_weekly_time', array(
+		'default'           => '23:59',
+		'sanitize_callback' => 'sanitize_text_field',
+	) );
+	$wp_customize->add_control( 'mpc_sale_weekly_time', array(
+		'label'       => __( 'Weekly deadline — time', 'my-peptide-core' ),
+		'description' => __( '24-hour format, e.g. 23:59.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'time',
+	) );
+
 	$wp_customize->add_setting( 'mpc_sale_end', array(
 		'default'           => '',
 		'sanitize_callback' => 'sanitize_text_field',
 	) );
 	$wp_customize->add_control( 'mpc_sale_end', array(
-		'label'       => __( 'Fixed flash sale end date/time (optional)', 'my-peptide-core' ),
-		'description' => __( 'Format: YYYY-MM-DD HH:MM, site timezone. Set this for a real deadline that counts down to the same moment for every visitor. Leave blank to use the rolling window below instead.', 'my-peptide-core' ),
+		'label'       => __( 'Fixed end date/time', 'my-peptide-core' ),
+		'description' => __( 'Used when the countdown is set to “One fixed end date”. Format: YYYY-MM-DD HH:MM, site timezone. Once this moment passes, the countdown and flash badge disappear.', 'my-peptide-core' ),
 		'section'     => 'mpc_hero',
 		'type'        => 'text',
 	) );
+}
 
-	$wp_customize->add_setting( 'mpc_sale_rolling_hours', array(
-		'default'           => 48,
-		'sanitize_callback' => 'absint',
-	) );
-	$wp_customize->add_control( 'mpc_sale_rolling_hours', array(
-		'label'       => __( 'Rolling countdown window (hours)', 'my-peptide-core' ),
-		'description' => __( 'Used only when no fixed end date is set above. The countdown starts from each visitor\'s first visit and is remembered in their browser, so it keeps ticking down across page loads instead of restarting. Set to 0 to hide the countdown entirely.', 'my-peptide-core' ),
-		'section'     => 'mpc_hero',
-		'type'        => 'number',
-		'input_attrs' => array( 'min' => 0, 'max' => 720, 'step' => 1 ),
-	) );
+/**
+ * Sanitize the countdown mode select.
+ */
+function mpc_sanitize_countdown_mode( $value ) {
+	return in_array( $value, array( 'weekly', 'fixed', 'off' ), true ) ? $value : 'weekly';
 }
 add_action( 'customize_register', 'mpc_customize_register' );
 

@@ -1,29 +1,32 @@
 /**
  * Homepage flash-sale countdown.
  *
- * Two modes, set in the Customizer (Appearance → Customize → Homepage Hero):
+ * The deadline is calculated server-side in the site's timezone and handed
+ * over as an ISO timestamp, so every visitor counts down to the same moment
+ * and nothing is stored per-browser.
  *
- *  1. Fixed end date  — counts down to the same moment for every visitor.
- *  2. Rolling window  — when no fixed date is set, the countdown runs for N
- *     hours from the visitor's first visit. The deadline is stored in
- *     localStorage so it keeps ticking down across page loads and does not
- *     restart on every refresh.
+ * Configured under Appearance → Customize → Homepage Hero:
+ *
+ *  - Recurring weekly deadline — the same weekday and time each week
+ *    (`repeatDays` is 7, so a page left open past zero rolls to next week).
+ *  - One fixed end date — counts down once, then hides for good.
+ *  - No countdown — PHP renders nothing and this script does nothing.
  */
 ( function () {
-	var STORAGE_KEY = 'mpcSaleDeadline';
-
 	document.addEventListener( 'DOMContentLoaded', function () {
 		var root = document.getElementById( 'mpc-countdown' );
-		if ( ! root || typeof mpcLanding === 'undefined' ) {
+		if ( ! root || typeof mpcLanding === 'undefined' || ! mpcLanding.saleEnd ) {
 			return;
 		}
 
-		var end = resolveDeadline();
-		if ( ! end ) {
+		var end = new Date( mpcLanding.saleEnd ).getTime();
+		if ( isNaN( end ) ) {
 			root.hidden = true;
 			return;
 		}
 
+		var repeatMs = ( parseInt( mpcLanding.repeatDays, 10 ) || 0 ) * 86400000;
+		var badge = document.querySelector( '.mpc-flash-badge' );
 		var dEl = document.getElementById( 'mpc-cd-d' );
 		var hEl = document.getElementById( 'mpc-cd-h' );
 		var mEl = document.getElementById( 'mpc-cd-m' );
@@ -34,13 +37,31 @@
 			return n < 10 ? '0' + n : '' + n;
 		}
 
+		function expire() {
+			clearInterval( timer );
+			root.hidden = true;
+			if ( badge ) {
+				badge.hidden = true;
+			}
+		}
+
 		function tick() {
 			var diff = end - Date.now();
+
 			if ( diff <= 0 ) {
-				dEl.textContent = hEl.textContent = mEl.textContent = sEl.textContent = '00';
-				clearInterval( timer );
-				return;
+				if ( ! repeatMs ) {
+					expire();
+					return;
+				}
+				// Roll to the next occurrence. The server recalculates the
+				// exact deadline on the next page load, which also corrects
+				// for any daylight-saving shift.
+				while ( diff <= 0 ) {
+					end += repeatMs;
+					diff = end - Date.now();
+				}
 			}
+
 			var total = Math.floor( diff / 1000 );
 			dEl.textContent = pad( Math.floor( total / 86400 ) );
 			hEl.textContent = pad( Math.floor( ( total % 86400 ) / 3600 ) );
@@ -51,54 +72,4 @@
 		tick();
 		timer = setInterval( tick, 1000 );
 	} );
-
-	/**
-	 * Fixed date wins; otherwise fall back to the persisted rolling deadline.
-	 * Returns a timestamp in ms, or null when there is nothing to count to.
-	 */
-	function resolveDeadline() {
-		if ( mpcLanding.saleEnd ) {
-			var fixed = new Date( mpcLanding.saleEnd ).getTime();
-			if ( ! isNaN( fixed ) && fixed > Date.now() ) {
-				return fixed;
-			}
-		}
-
-		var hours = parseInt( mpcLanding.rollingHours, 10 );
-		if ( ! hours || hours <= 0 ) {
-			return null;
-		}
-
-		var windowMs = hours * 3600 * 1000;
-		var stored = readStored();
-
-		// Reuse the stored deadline while it is still in the future and still
-		// within the configured window (so shortening the window takes effect).
-		if ( stored && stored > Date.now() && stored - Date.now() <= windowMs ) {
-			return stored;
-		}
-
-		var deadline = Date.now() + windowMs;
-		writeStored( deadline );
-		return deadline;
-	}
-
-	function readStored() {
-		try {
-			var raw = window.localStorage.getItem( STORAGE_KEY );
-			var val = raw ? parseInt( raw, 10 ) : NaN;
-			return isNaN( val ) ? null : val;
-		} catch ( e ) {
-			return null;
-		}
-	}
-
-	function writeStored( value ) {
-		try {
-			window.localStorage.setItem( STORAGE_KEY, String( value ) );
-		} catch ( e ) {
-			// Private mode / storage disabled — the countdown still runs for
-			// this page view, it just cannot persist across loads.
-		}
-	}
 } )();
