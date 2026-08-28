@@ -307,6 +307,26 @@ a.added_to_cart, .woocommerce #respond input#submit, .woocommerce a.button,
   letter-spacing: -0.01em; margin-bottom: 16px; color: #fff;
 }
 .mpc-hero-banner h1 .hl { color: #7fb2ff; }
+
+/* Glowing highlight for *asterisk-marked* words in the hero copy. The colour
+   alone carries the emphasis, so the effect still reads if text-shadow is
+   unsupported or the glow is dimmed by forced-colors. */
+.mpc-hl {
+  color: #8cc0ff;
+  text-shadow:
+    0 0 6px rgba(140, 192, 255, .85),
+    0 0 22px rgba(90, 150, 255, .65),
+    0 0 48px rgba(45, 111, 224, .45);
+}
+.mpc-hero-banner p.lede .mpc-hl {
+  color: #a6cfff;
+  text-shadow:
+    0 0 5px rgba(166, 207, 255, .7),
+    0 0 16px rgba(90, 150, 255, .45);
+}
+@media (forced-colors: active) {
+  .mpc-hl { text-shadow: none; }
+}
 .mpc-hero-banner p.lede { font-size: 16px; color: #c3d3ec; margin-bottom: 26px; max-width: 46ch; }
 .mpc-tier-row { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
 .mpc-tier {

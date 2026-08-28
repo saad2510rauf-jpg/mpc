@@ -41,6 +41,23 @@ function mpc_theme_setup() {
 add_action( 'after_setup_theme', 'mpc_theme_setup' );
 
 /**
+ * Cache-busting version for a theme asset.
+ *
+ * Uses the file's modification time so the URL changes whenever the file
+ * changes. The theme version alone is not enough: a CDN caches by full URL,
+ * so edits shipped without a version bump keep serving the stale file until
+ * the cache expires.
+ *
+ * @param string $relative_path Path relative to the theme root, e.g. '/style.css'.
+ */
+function mpc_asset_version( $relative_path ) {
+	$file = MPC_THEME_DIR . $relative_path;
+	$mtime = file_exists( $file ) ? filemtime( $file ) : false;
+
+	return $mtime ? MPC_THEME_VERSION . '.' . $mtime : MPC_THEME_VERSION;
+}
+
+/**
  * Enqueue styles and scripts.
  */
 function mpc_enqueue_assets() {
@@ -50,12 +67,12 @@ function mpc_enqueue_assets() {
 		array(),
 		null
 	);
-	wp_enqueue_style( 'my-peptide-core-style', get_stylesheet_uri(), array(), MPC_THEME_VERSION );
+	wp_enqueue_style( 'my-peptide-core-style', get_stylesheet_uri(), array(), mpc_asset_version( '/style.css' ) );
 	wp_enqueue_script(
 		'my-peptide-core-navigation',
 		MPC_THEME_URI . '/assets/js/navigation.js',
 		array(),
-		MPC_THEME_VERSION,
+		mpc_asset_version( '/assets/js/navigation.js' ),
 		true
 	);
 
@@ -64,7 +81,7 @@ function mpc_enqueue_assets() {
 			'my-peptide-core-landing',
 			MPC_THEME_URI . '/assets/js/landing.js',
 			array(),
-			MPC_THEME_VERSION,
+			mpc_asset_version( '/assets/js/landing.js' ),
 			true
 		);
 		wp_localize_script( 'my-peptide-core-landing', 'mpcLanding', array(
@@ -82,6 +99,22 @@ add_action( 'wp_enqueue_scripts', 'mpc_enqueue_assets' );
 function mpc_get_theme_mod_or_option( $key, $default = '' ) {
 	$value = get_theme_mod( $key, '' );
 	return '' !== $value ? $value : $default;
+}
+
+/**
+ * Turn *asterisk-wrapped* words into glowing highlight spans.
+ *
+ * The text is escaped first, so anything an editor types is treated as plain
+ * text — only the markers this function adds ever become real markup.
+ */
+function mpc_highlight_text( $text ) {
+	$escaped = esc_html( $text );
+
+	return preg_replace(
+		'/\*([^*]+)\*/',
+		'<span class="mpc-hl">$1</span>',
+		$escaped
+	);
 }
 
 /**
@@ -179,13 +212,14 @@ function mpc_customize_register( $wp_customize ) {
 	) );
 
 	$wp_customize->add_setting( 'mpc_hero_headline', array(
-		'default'           => __( 'Precision-Made Research Peptides You Can Trust', 'my-peptide-core' ),
+		'default'           => __( '*Precision-Made* Research Peptides You Can *Trust*', 'my-peptide-core' ),
 		'sanitize_callback' => 'sanitize_text_field',
 	) );
 	$wp_customize->add_control( 'mpc_hero_headline', array(
-		'label'   => __( 'Hero headline', 'my-peptide-core' ),
-		'section' => 'mpc_hero',
-		'type'    => 'text',
+		'label'       => __( 'Hero headline', 'my-peptide-core' ),
+		'description' => __( 'Wrap any words in *asterisks* to make them glow, e.g. *Precision-Made* Research Peptides.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'text',
 	) );
 
 	$wp_customize->add_setting( 'mpc_hero_subhead', array(
@@ -193,9 +227,10 @@ function mpc_customize_register( $wp_customize ) {
 		'sanitize_callback' => 'sanitize_text_field',
 	) );
 	$wp_customize->add_control( 'mpc_hero_subhead', array(
-		'label'   => __( 'Hero subheading', 'my-peptide-core' ),
-		'section' => 'mpc_hero',
-		'type'    => 'text',
+		'label'       => __( 'Hero subheading', 'my-peptide-core' ),
+		'description' => __( '*Asterisks* make words glow here too.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'text',
 	) );
 
 	$wp_customize->add_setting( 'mpc_countdown_mode', array(

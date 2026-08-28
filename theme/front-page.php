@@ -13,7 +13,7 @@ $shop_url = ( class_exists( 'WooCommerce' ) && function_exists( 'wc_get_page_id'
 
 $mpc_show_countdown = mpc_countdown_is_active();
 
-$mpc_hero_headline = mpc_get_theme_mod_or_option( 'mpc_hero_headline', __( 'Precision-Made Research Peptides You Can Trust', 'my-peptide-core' ) );
+$mpc_hero_headline = mpc_get_theme_mod_or_option( 'mpc_hero_headline', __( '*Precision-Made* Research Peptides You Can *Trust*', 'my-peptide-core' ) );
 $mpc_hero_subhead  = mpc_get_theme_mod_or_option( 'mpc_hero_subhead', __( 'Save more the more you order — savings are applied automatically in your cart.', 'my-peptide-core' ) );
 
 $mpc_cat_icons = array(
@@ -47,8 +47,8 @@ $mpc_viewall_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 			</div>
 		<?php endif; ?>
 
-		<h1><?php echo esc_html( $mpc_hero_headline ); ?></h1>
-		<p class="lede"><?php echo esc_html( $mpc_hero_subhead ); ?></p>
+		<h1><?php echo mpc_highlight_text( $mpc_hero_headline ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside mpc_highlight_text() ?></h1>
+		<p class="lede"><?php echo mpc_highlight_text( $mpc_hero_subhead ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside mpc_highlight_text() ?></p>
 
 		<?php if ( class_exists( 'WooCommerce' ) ) : ?>
 			<div class="mpc-tier-row">
