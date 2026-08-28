@@ -693,6 +693,12 @@ a.added_to_cart, .woocommerce #respond input#submit, .woocommerce a.button,
 .mpc-accordion-panel > *:first-child { margin-top: 0; }
 .mpc-accordion-panel > *:last-child { margin-bottom: 0; }
 .mpc-accordion-panel h4 { margin-top: 22px; }
+.mpc-supply-note {
+  font-family: var(--mpc-font-display);
+  font-weight: 700;
+  color: var(--mpc-ink);
+  margin-top: 18px;
+}
 @media (prefers-reduced-motion: reduce) {
   .mpc-accordion-item > summary::after { transition: none; }
 }
