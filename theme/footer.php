@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="container">
 			<div class="footer-grid">
 				<div class="footer-brand">
-					<p class="site-title" style="color:#fff;">My Peptide<span class="accent">Core</span></p>
+					<img class="site-logo-fallback" src="<?php echo esc_url( MPC_THEME_URI . '/assets/images/logo.png' ); ?>" alt="" style="margin-bottom:14px;">
 					<p><?php esc_html_e( 'Research-grade peptides, third-party tested and supplied strictly for laboratory research use.', 'my-peptide-core' ); ?></p>
 				</div>
 				<div>
@@ -29,7 +29,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<li><a href="<?php echo esc_url( home_url( '/research-use-disclaimer/' ) ); ?>"><?php esc_html_e( 'Research Use Disclaimer', 'my-peptide-core' ); ?></a></li>
 						<li><a href="<?php echo esc_url( home_url( '/terms-and-conditions/' ) ); ?>"><?php esc_html_e( 'Terms & Conditions', 'my-peptide-core' ); ?></a></li>
 						<li><a href="<?php echo esc_url( home_url( '/shipping-and-returns/' ) ); ?>"><?php esc_html_e( 'Shipping & Returns', 'my-peptide-core' ); ?></a></li>
-						<li><a href="<?php echo esc_url( get_privacy_policy_url() ); ?>"><?php esc_html_e( 'Privacy Policy', 'my-peptide-core' ); ?></a></li>
+						<?php if ( get_privacy_policy_url() ) : ?>
+							<li><a href="<?php echo esc_url( get_privacy_policy_url() ); ?>"><?php esc_html_e( 'Privacy Policy', 'my-peptide-core' ); ?></a></li>
+						<?php endif; ?>
 					</ul>
 				</div>
 				<div>
@@ -42,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			</div>
 			<div class="footer-bottom">
-				<span>&copy; <?php echo esc_html( date_i18n( 'Y' ) ); ?> My Peptide Core. <?php esc_html_e( 'All rights reserved.', 'my-peptide-core' ); ?></span>
+				<span>&copy; <?php echo esc_html( date_i18n( 'Y' ) ); ?> <?php echo esc_html( get_bloginfo( 'name' ) ); ?>. <?php esc_html_e( 'All rights reserved.', 'my-peptide-core' ); ?></span>
 				<span><?php esc_html_e( 'For research use only. Not for human consumption.', 'my-peptide-core' ); ?></span>
 			</div>
 		</div>
@@ -50,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="mpc-footer-disclaimer">
 		<div class="container">
-			<?php esc_html_e( 'My Peptide Core products are sold exclusively as research chemicals for in-vitro laboratory use by qualified professionals. They are not intended for human or animal consumption, use, diagnosis, treatment, or cure of any disease.', 'my-peptide-core' ); ?>
+			<?php esc_html_e( 'All products are sold strictly for laboratory research use only and are not intended for human or veterinary consumption, diagnostic, or therapeutic use. They are not drugs, foods, cosmetics, or dietary supplements. Purity claims refer to independent HPLC testing; a Certificate of Analysis is available on request.', 'my-peptide-core' ); ?>
 		</div>
 	</div>
 

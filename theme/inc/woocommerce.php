@@ -87,6 +87,46 @@ function mpc_save_ruo_consent_field( $order_id ) {
 }
 
 /**
+ * Volume-based discount tiers, in the store's own currency (no fake FX
+ * conversion involved). These are real, and are actually applied to the
+ * cart below — the homepage hero only ever advertises numbers that match
+ * what a shopper actually gets at checkout.
+ *
+ * Adjust via the `mpc_sale_tiers` filter.
+ */
+function mpc_get_sale_tiers() {
+	return apply_filters( 'mpc_sale_tiers', array(
+		array( 'threshold' => 120, 'percent' => 10 ),
+		array( 'threshold' => 250, 'percent' => 15 ),
+		array( 'threshold' => 450, 'percent' => 20 ),
+	) );
+}
+
+/**
+ * Apply the highest tier the current cart subtotal qualifies for, as a
+ * negative fee so it's visible as its own line at checkout.
+ */
+add_action( 'woocommerce_cart_calculate_fees', 'mpc_apply_tiered_discount' );
+function mpc_apply_tiered_discount( $cart ) {
+	if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+		return;
+	}
+	$subtotal = $cart->get_subtotal();
+	$percent  = 0;
+	foreach ( mpc_get_sale_tiers() as $tier ) {
+		if ( $subtotal >= $tier['threshold'] && $tier['percent'] > $percent ) {
+			$percent = $tier['percent'];
+		}
+	}
+	if ( $percent > 0 ) {
+		$cart->add_fee(
+			sprintf( __( 'Volume discount (%d%%)', 'my-peptide-core' ), $percent ),
+			-1 * ( $subtotal * ( $percent / 100 ) )
+		);
+	}
+}
+
+/**
  * Admin notice if WooCommerce isn't active — the theme depends on it for shop/cart/checkout.
  */
 add_action( 'admin_notices', function () {
