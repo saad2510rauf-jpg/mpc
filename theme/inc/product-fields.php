@@ -296,7 +296,7 @@ function mpc_single_product_body() {
 
 	$description = $product->get_description();
 	if ( $description ) {
-		echo '<div class="mpc-product-description">' . wp_kses_post( wpautop( $description ) ) . '</div>';
+		echo '<div class="mpc-product-description">' . mpc_accordion_from_html( $description ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped within
 	}
 
 	echo '<div class="mpc-product-ruo">';
@@ -308,6 +308,67 @@ function mpc_single_product_body() {
 	echo '</div>';
 
 	echo '</div>';
+}
+
+/**
+ * Split description HTML on its <h3> headings into collapsible sections.
+ *
+ * Uses native <details>/<summary> so the sections work with no JavaScript,
+ * stay keyboard operable, and remain findable by in-page search in browsers
+ * that search collapsed content. The first section is open so the page never
+ * reads as entirely empty.
+ *
+ * Content before the first heading, if any, is rendered above the accordion.
+ *
+ * @param string $html Post content.
+ * @return string Escaped, accordion-wrapped markup.
+ */
+function mpc_accordion_from_html( $html ) {
+	$parts = preg_split(
+		'/<h3[^>]*>(.*?)<\/h3>/is',
+		$html,
+		-1,
+		PREG_SPLIT_DELIM_CAPTURE
+	);
+
+	// No headings to split on: render as-is.
+	if ( count( $parts ) < 3 ) {
+		return wp_kses_post( wpautop( $html ) );
+	}
+
+	$output = '';
+
+	$intro = trim( array_shift( $parts ) );
+	if ( '' !== $intro && '' !== trim( wp_strip_all_tags( $intro ) ) ) {
+		$output .= wp_kses_post( wpautop( $intro ) );
+	}
+
+	$output .= '<div class="mpc-accordion">';
+
+	// Remaining entries are heading/content pairs. `$rendered` counts sections
+	// actually emitted, so the first visible one opens even if a malformed
+	// empty heading was skipped ahead of it.
+	$rendered = 0;
+	for ( $i = 0, $n = count( $parts ); $i < $n; $i += 2 ) {
+		$heading = isset( $parts[ $i ] ) ? trim( wp_strip_all_tags( $parts[ $i ] ) ) : '';
+		$body    = isset( $parts[ $i + 1 ] ) ? trim( $parts[ $i + 1 ] ) : '';
+
+		if ( '' === $heading ) {
+			continue;
+		}
+
+		$output .= sprintf(
+			'<details class="mpc-accordion-item"%s><summary><span>%s</span></summary><div class="mpc-accordion-panel">%s</div></details>',
+			0 === $rendered ? ' open' : '',
+			esc_html( $heading ),
+			wp_kses_post( wpautop( $body ) )
+		);
+		$rendered++;
+	}
+
+	$output .= '</div>';
+
+	return $output;
 }
 
 /**

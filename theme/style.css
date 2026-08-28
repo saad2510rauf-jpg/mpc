@@ -637,24 +637,65 @@ a.added_to_cart, .woocommerce #respond input#submit, .woocommerce a.button,
 }
 .woocommerce div.product form.cart button.single_add_to_cart_button { vertical-align: middle; }
 
-/* Purchase add-ons */
-.mpc-addons { display: grid; gap: 14px; margin: 22px 0 4px; }
-.mpc-addon { display: grid; gap: 6px; margin: 0; }
-.mpc-addon label { font-size: .8rem; font-weight: 600; color: var(--mpc-ink); }
-.mpc-addon select {
-  width: 100%;
-  padding: 11px 34px 11px 13px;
+/* Cart upsell */
+.mpc-upsell {
+  margin: 40px 0 8px;
+  padding: 24px 26px;
+  background: var(--mpc-surface-alt);
   border: 1px solid var(--mpc-line);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--mpc-ink);
-  font-family: var(--mpc-font);
-  font-size: .9rem;
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b6472' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
-  background-repeat: no-repeat; background-position: right 11px center; background-size: 14px;
+  border-radius: var(--mpc-radius);
 }
-.mpc-addon select:focus { outline: none; border-color: var(--mpc-blue); }
+.mpc-upsell h2 { font-size: 1.1rem; margin: 0 0 4px; }
+.mpc-upsell-intro { font-size: .86rem; color: var(--mpc-muted); margin: 0 0 18px; }
+.mpc-upsell-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.mpc-upsell-card {
+  background: #fff;
+  border: 1px solid var(--mpc-line);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.mpc-upsell-img { display: block; border-radius: 8px; overflow: hidden; background: var(--mpc-blue-pale); }
+.mpc-upsell-img img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+.mpc-upsell-info { flex: 1; }
+.mpc-upsell-name { display: block; font-size: .88rem; font-weight: 600; color: var(--mpc-ink); line-height: 1.3; }
+.mpc-upsell-name:hover { color: var(--mpc-blue-dark); }
+.mpc-upsell-price { font-size: .9rem; font-weight: 700; color: var(--mpc-blue-dark); margin-top: 4px; }
+.woocommerce .mpc-upsell a.button.mpc-upsell-add {
+  width: 100%; padding: 9px 14px; font-size: .85rem; text-align: center;
+}
+@media (max-width: 900px) { .mpc-upsell-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .mpc-upsell-grid { grid-template-columns: 1fr; } }
+
+/* Collapsible description sections */
+.mpc-accordion { border-top: 1px solid var(--mpc-line); }
+.mpc-accordion-item { border-bottom: 1px solid var(--mpc-line); }
+.mpc-accordion-item > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 18px 2px;
+  font-family: var(--mpc-font-display);
+  font-size: 1.05rem; font-weight: 600; color: var(--mpc-ink);
+}
+.mpc-accordion-item > summary::-webkit-details-marker { display: none; }
+.mpc-accordion-item > summary::after {
+  content: ""; width: 16px; height: 16px; flex: none;
+  background: var(--mpc-muted);
+  transition: transform .2s ease;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>") center/contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>") center/contain no-repeat;
+}
+.mpc-accordion-item[open] > summary::after { transform: rotate(180deg); }
+.mpc-accordion-item > summary:hover { color: var(--mpc-blue-dark); }
+.mpc-accordion-item > summary:focus-visible { outline: 2px solid var(--mpc-blue); outline-offset: 2px; }
+.mpc-accordion-panel { padding: 0 2px 22px; }
+.mpc-accordion-panel > *:first-child { margin-top: 0; }
+.mpc-accordion-panel > *:last-child { margin-bottom: 0; }
+.mpc-accordion-panel h4 { margin-top: 22px; }
+@media (prefers-reduced-motion: reduce) {
+  .mpc-accordion-item > summary::after { transition: none; }
+}
 
 /* Fulfilment assurances */
 .mpc-assurances { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 9px; }
