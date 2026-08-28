@@ -334,26 +334,14 @@ function mpc_fallback_menu() {
 }
 
 /**
- * Currencies the store can genuinely charge in.
- *
- * Only returns more than one when a multi-currency plugin has registered
- * them through the `woocommerce_currencies` ecosystem via this filter, so
- * the header never advertises a currency checkout cannot honour.
- */
-function mpc_get_available_currencies() {
-	if ( ! class_exists( 'WooCommerce' ) ) {
-		return array();
-	}
-	$base = get_woocommerce_currency();
-	$list = array( $base => $base );
-	return apply_filters( 'mpc_available_currencies', $list );
-}
-
-/**
  * Translated versions of the current page.
  *
- * Reads Polylang / WPML when present; otherwise returns just the site
- * language, which hides the picker.
+ * Reads Polylang / WPML when present. With no translation plugin active
+ * this returns an empty array and the header shows the current language as
+ * a static badge instead of a switcher, rather than offering languages that
+ * would lead nowhere.
+ *
+ * @return array<int, array{name: string, url: string, locale: string, current: bool}>
  */
 function mpc_get_available_languages() {
 	$languages = array();
@@ -365,6 +353,7 @@ function mpc_get_available_languages() {
 				$languages[] = array(
 					'name'    => $lang['name'],
 					'url'     => $lang['url'],
+					'locale'  => isset( $lang['locale'] ) ? $lang['locale'] : $lang['slug'],
 					'current' => ! empty( $lang['current_lang'] ),
 				);
 			}
@@ -376,6 +365,7 @@ function mpc_get_available_languages() {
 				$languages[] = array(
 					'name'    => $lang['native_name'],
 					'url'     => $lang['url'],
+					'locale'  => isset( $lang['default_locale'] ) ? $lang['default_locale'] : $lang['language_code'],
 					'current' => ! empty( $lang['active'] ),
 				);
 			}
