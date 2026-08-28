@@ -41,6 +41,30 @@ function mpc_theme_setup() {
 add_action( 'after_setup_theme', 'mpc_theme_setup' );
 
 /**
+ * Tell shared caches not to reuse HTML between visitors.
+ *
+ * WordPress sends no Cache-Control header on anonymous page views, which
+ * lets a CDN cache the HTML on its own heuristics and keep serving it long
+ * after the page changes. That matters twice over here: the header renders
+ * a per-visitor cart count server-side, so a shared cached copy would show
+ * one shopper the wrong cart.
+ *
+ * Static assets are untouched and stay cached — they are versioned by file
+ * modification time, so they can be cached hard and still update on deploy.
+ */
+add_action( 'send_headers', 'mpc_send_no_shared_cache_headers' );
+function mpc_send_no_shared_cache_headers() {
+	if ( is_admin() || is_feed() || is_robots() ) {
+		return;
+	}
+	if ( headers_sent() ) {
+		return;
+	}
+
+	header( 'Cache-Control: no-cache, must-revalidate, max-age=0' );
+}
+
+/**
  * Cache-busting version for a theme asset.
  *
  * Uses the file's modification time so the URL changes whenever the file
