@@ -11,9 +11,7 @@ $shop_url = ( class_exists( 'WooCommerce' ) && function_exists( 'wc_get_page_id'
 	? get_permalink( wc_get_page_id( 'shop' ) )
 	: home_url( '/shop/' );
 
-$mpc_sale_end = mpc_get_theme_mod_or_option( 'mpc_sale_end', '' );
-$mpc_sale_end_ts = $mpc_sale_end ? strtotime( $mpc_sale_end . ' ' . wp_timezone_string() ) : false;
-$mpc_show_countdown = $mpc_sale_end_ts && $mpc_sale_end_ts > time();
+$mpc_show_countdown = mpc_countdown_is_active();
 
 $mpc_hero_headline = mpc_get_theme_mod_or_option( 'mpc_hero_headline', __( 'Precision-Made Research Peptides You Can Trust', 'my-peptide-core' ) );
 $mpc_hero_subhead  = mpc_get_theme_mod_or_option( 'mpc_hero_subhead', __( 'Save more the more you order — savings are applied automatically in your cart.', 'my-peptide-core' ) );
@@ -180,7 +178,7 @@ $mpc_viewall_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 					<?php endforeach; ?>
 				</div>
 			<?php else : ?>
-				<p style="text-align:center;color:var(--mpc-muted);">
+				<p class="mpc-bundle-empty">
 					<?php
 					echo class_exists( 'WooCommerce' )
 						? esc_html__( 'Add products in WooCommerce and mark them "Featured" to have them appear here automatically.', 'my-peptide-core' )
@@ -235,9 +233,8 @@ $mpc_viewall_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 	<!-- WHY US -->
 	<section>
 		<div class="container">
-			<div class="section-head centered">
-				<span class="kicker"><?php esc_html_e( 'Why My Peptide Core', 'my-peptide-core' ); ?></span>
-				<h2><?php esc_html_e( 'Built for Serious Research', 'my-peptide-core' ); ?></h2>
+			<div class="section-head">
+				<h2><?php esc_html_e( 'Why Choose My Peptide Core', 'my-peptide-core' ); ?></h2>
 			</div>
 			<div class="mpc-cards">
 				<div class="mpc-card">

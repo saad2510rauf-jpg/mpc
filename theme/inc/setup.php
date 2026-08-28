@@ -68,8 +68,9 @@ function mpc_enqueue_assets() {
 			true
 		);
 		wp_localize_script( 'my-peptide-core-landing', 'mpcLanding', array(
-			'saleEnd'      => mpc_get_theme_mod_or_option( 'mpc_sale_end', '' ),
-			'baseCurrency' => class_exists( 'WooCommerce' ) ? get_woocommerce_currency() : 'EUR',
+			'saleEnd'       => mpc_get_sale_end_iso(),
+			'rollingHours'  => mpc_get_rolling_sale_hours(),
+			'baseCurrency'  => class_exists( 'WooCommerce' ) ? get_woocommerce_currency() : 'EUR',
 		) );
 	}
 }
@@ -81,6 +82,44 @@ add_action( 'wp_enqueue_scripts', 'mpc_enqueue_assets' );
 function mpc_get_theme_mod_or_option( $key, $default = '' ) {
 	$value = get_theme_mod( $key, '' );
 	return '' !== $value ? $value : $default;
+}
+
+/**
+ * Hours the rolling countdown runs for when no fixed end date is set.
+ * Set to 0 (or filter to 0) to hide the countdown unless a real date exists.
+ */
+function mpc_get_rolling_sale_hours() {
+	return (int) apply_filters( 'mpc_rolling_sale_hours', (int) mpc_get_theme_mod_or_option( 'mpc_sale_rolling_hours', 48 ) );
+}
+
+/**
+ * Fixed sale end timestamp from the Customizer, or false when unset/past.
+ */
+function mpc_get_sale_end_timestamp() {
+	$raw = mpc_get_theme_mod_or_option( 'mpc_sale_end', '' );
+	if ( ! $raw ) {
+		return false;
+	}
+	$ts = strtotime( $raw . ' ' . wp_timezone_string() );
+	return ( $ts && $ts > time() ) ? $ts : false;
+}
+
+/**
+ * Fixed sale end as an ISO 8601 string for the front-end, or '' when unset.
+ */
+function mpc_get_sale_end_iso() {
+	$ts = mpc_get_sale_end_timestamp();
+	return $ts ? gmdate( 'c', $ts ) : '';
+}
+
+/**
+ * Whether the hero countdown should render at all.
+ *
+ * A fixed Customizer end date always wins. Otherwise the rolling window
+ * runs, unless it has been set to zero hours.
+ */
+function mpc_countdown_is_active() {
+	return (bool) mpc_get_sale_end_timestamp() || mpc_get_rolling_sale_hours() > 0;
 }
 
 /**
@@ -119,10 +158,22 @@ function mpc_customize_register( $wp_customize ) {
 		'sanitize_callback' => 'sanitize_text_field',
 	) );
 	$wp_customize->add_control( 'mpc_sale_end', array(
-		'label'       => __( 'Flash sale end date/time (optional)', 'my-peptide-core' ),
-		'description' => __( 'Format: YYYY-MM-DD HH:MM, site timezone. Leave blank to hide the flash-sale badge and countdown entirely — the tiered discount itself still applies regardless of this field.', 'my-peptide-core' ),
+		'label'       => __( 'Fixed flash sale end date/time (optional)', 'my-peptide-core' ),
+		'description' => __( 'Format: YYYY-MM-DD HH:MM, site timezone. Set this for a real deadline that counts down to the same moment for every visitor. Leave blank to use the rolling window below instead.', 'my-peptide-core' ),
 		'section'     => 'mpc_hero',
 		'type'        => 'text',
+	) );
+
+	$wp_customize->add_setting( 'mpc_sale_rolling_hours', array(
+		'default'           => 48,
+		'sanitize_callback' => 'absint',
+	) );
+	$wp_customize->add_control( 'mpc_sale_rolling_hours', array(
+		'label'       => __( 'Rolling countdown window (hours)', 'my-peptide-core' ),
+		'description' => __( 'Used only when no fixed end date is set above. The countdown starts from each visitor\'s first visit and is remembered in their browser, so it keeps ticking down across page loads instead of restarting. Set to 0 to hide the countdown entirely.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'number',
+		'input_attrs' => array( 'min' => 0, 'max' => 720, 'step' => 1 ),
 	) );
 }
 add_action( 'customize_register', 'mpc_customize_register' );
