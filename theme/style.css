@@ -314,15 +314,15 @@ a.added_to_cart, .woocommerce #respond input#submit, .woocommerce a.button,
 .mpc-hl {
   color: #8cc0ff;
   text-shadow:
-    0 0 6px rgba(140, 192, 255, .85),
-    0 0 22px rgba(90, 150, 255, .65),
-    0 0 48px rgba(45, 111, 224, .45);
+    0 0 4px rgba(140, 192, 255, .38),
+    0 0 14px rgba(90, 150, 255, .24),
+    0 0 32px rgba(45, 111, 224, .15);
 }
 .mpc-hero-banner p.lede .mpc-hl {
   color: #a6cfff;
   text-shadow:
-    0 0 5px rgba(166, 207, 255, .7),
-    0 0 16px rgba(90, 150, 255, .45);
+    0 0 4px rgba(166, 207, 255, .3),
+    0 0 12px rgba(90, 150, 255, .18);
 }
 @media (forced-colors: active) {
   .mpc-hl { text-shadow: none; }
