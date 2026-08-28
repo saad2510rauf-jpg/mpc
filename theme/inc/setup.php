@@ -45,8 +45,8 @@ add_action( 'after_setup_theme', 'mpc_theme_setup' );
  */
 function mpc_enqueue_assets() {
 	wp_enqueue_style(
-		'mpc-google-font-inter',
-		'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+		'mpc-google-fonts',
+		'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap',
 		array(),
 		null
 	);
@@ -58,8 +58,74 @@ function mpc_enqueue_assets() {
 		MPC_THEME_VERSION,
 		true
 	);
+
+	if ( is_front_page() ) {
+		wp_enqueue_script(
+			'my-peptide-core-landing',
+			MPC_THEME_URI . '/assets/js/landing.js',
+			array(),
+			MPC_THEME_VERSION,
+			true
+		);
+		wp_localize_script( 'my-peptide-core-landing', 'mpcLanding', array(
+			'saleEnd'      => mpc_get_theme_mod_or_option( 'mpc_sale_end', '' ),
+			'baseCurrency' => class_exists( 'WooCommerce' ) ? get_woocommerce_currency() : 'EUR',
+		) );
+	}
 }
 add_action( 'wp_enqueue_scripts', 'mpc_enqueue_assets' );
+
+/**
+ * Small wrapper so theme mods have sane fallbacks.
+ */
+function mpc_get_theme_mod_or_option( $key, $default = '' ) {
+	$value = get_theme_mod( $key, '' );
+	return '' !== $value ? $value : $default;
+}
+
+/**
+ * Customizer: homepage hero / sale settings. Countdown + flash badge only
+ * ever show when an admin has actually set a real, future end date —
+ * no fake "always 48h left" urgency.
+ */
+function mpc_customize_register( $wp_customize ) {
+	$wp_customize->add_section( 'mpc_hero', array(
+		'title'    => __( 'Homepage Hero', 'my-peptide-core' ),
+		'priority' => 30,
+	) );
+
+	$wp_customize->add_setting( 'mpc_hero_headline', array(
+		'default'           => __( 'Precision-Made Research Peptides You Can Trust', 'my-peptide-core' ),
+		'sanitize_callback' => 'sanitize_text_field',
+	) );
+	$wp_customize->add_control( 'mpc_hero_headline', array(
+		'label'   => __( 'Hero headline', 'my-peptide-core' ),
+		'section' => 'mpc_hero',
+		'type'    => 'text',
+	) );
+
+	$wp_customize->add_setting( 'mpc_hero_subhead', array(
+		'default'           => __( 'Save more the more you order — savings are applied automatically in your cart.', 'my-peptide-core' ),
+		'sanitize_callback' => 'sanitize_text_field',
+	) );
+	$wp_customize->add_control( 'mpc_hero_subhead', array(
+		'label'   => __( 'Hero subheading', 'my-peptide-core' ),
+		'section' => 'mpc_hero',
+		'type'    => 'text',
+	) );
+
+	$wp_customize->add_setting( 'mpc_sale_end', array(
+		'default'           => '',
+		'sanitize_callback' => 'sanitize_text_field',
+	) );
+	$wp_customize->add_control( 'mpc_sale_end', array(
+		'label'       => __( 'Flash sale end date/time (optional)', 'my-peptide-core' ),
+		'description' => __( 'Format: YYYY-MM-DD HH:MM, site timezone. Leave blank to hide the flash-sale badge and countdown entirely — the tiered discount itself still applies regardless of this field.', 'my-peptide-core' ),
+		'section'     => 'mpc_hero',
+		'type'        => 'text',
+	) );
+}
+add_action( 'customize_register', 'mpc_customize_register' );
 
 /**
  * Register footer widget area.
@@ -89,6 +155,58 @@ function mpc_fallback_menu() {
 	echo '<li><a href="' . esc_url( home_url( '/research-use-disclaimer/' ) ) . '">' . esc_html__( 'Research Use Disclaimer', 'my-peptide-core' ) . '</a></li>';
 	echo '<li><a href="' . esc_url( home_url( '/contact/' ) ) . '">' . esc_html__( 'Contact', 'my-peptide-core' ) . '</a></li>';
 	echo '</ul>';
+}
+
+/**
+ * Currencies the store can genuinely charge in.
+ *
+ * Only returns more than one when a multi-currency plugin has registered
+ * them through the `woocommerce_currencies` ecosystem via this filter, so
+ * the header never advertises a currency checkout cannot honour.
+ */
+function mpc_get_available_currencies() {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		return array();
+	}
+	$base = get_woocommerce_currency();
+	$list = array( $base => $base );
+	return apply_filters( 'mpc_available_currencies', $list );
+}
+
+/**
+ * Translated versions of the current page.
+ *
+ * Reads Polylang / WPML when present; otherwise returns just the site
+ * language, which hides the picker.
+ */
+function mpc_get_available_languages() {
+	$languages = array();
+
+	if ( function_exists( 'pll_the_languages' ) ) {
+		$raw = pll_the_languages( array( 'raw' => 1 ) );
+		if ( is_array( $raw ) ) {
+			foreach ( $raw as $lang ) {
+				$languages[] = array(
+					'name'    => $lang['name'],
+					'url'     => $lang['url'],
+					'current' => ! empty( $lang['current_lang'] ),
+				);
+			}
+		}
+	} elseif ( function_exists( 'icl_get_languages' ) ) {
+		$raw = icl_get_languages( 'skip_missing=0' );
+		if ( is_array( $raw ) ) {
+			foreach ( $raw as $lang ) {
+				$languages[] = array(
+					'name'    => $lang['native_name'],
+					'url'     => $lang['url'],
+					'current' => ! empty( $lang['active'] ),
+				);
+			}
+		}
+	}
+
+	return apply_filters( 'mpc_available_languages', $languages );
 }
 
 /**
